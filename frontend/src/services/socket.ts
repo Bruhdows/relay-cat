@@ -1,79 +1,120 @@
-import { io, Socket } from 'socket.io-client';
-import { Message } from '../types';
+import { io, Socket } from "socket.io-client";
+import { Message } from "../types";
 
 class SocketService {
-  private socket: Socket | null = null;
+    private socket: Socket | null = null;
+    private listeners = new Map<string, (...args: unknown[]) => void>();
 
-  connect(token: string) {
-    if (this.socket?.connected) return;
+    connect(token: string) {
+        if (this.socket?.connected) return;
 
-    this.socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001', {
-      auth: { token }
-    });
+        this.socket = io(
+            import.meta.env.VITE_SOCKET_URL || "http://localhost:3001",
+            {
+                auth: { token },
+            },
+        );
 
-    this.socket.on('connect', () => {
-      console.log('Connected to server');
-    });
+        this.socket.on("connect", () => {
+            console.log("Connected to server");
+        });
 
-    this.socket.on('disconnect', () => {
-      console.log('Disconnected from server');
-    });
+        this.socket.on("disconnect", () => {
+            console.log("Disconnected from server");
+        });
 
-    this.socket.on('connect_error', (error: Error) => {
-      console.error('Connection error:', error);
-    });
-  }
-
-  disconnect() {
-    if (this.socket) {
-      this.socket.disconnect();
-      this.socket = null;
+        this.socket.on("connect_error", (error: Error) => {
+            console.error("Connection error:", error);
+        });
     }
-  }
 
-  sendMessage(data: { content: string; channelId: string; channelType: string; serverId?: string }) {
-    this.socket?.emit('sendMessage', data);
-  }
+    disconnect() {
+        if (this.socket) {
+            this.socket.disconnect();
+            this.socket = null;
+        }
+    }
 
-  joinVoiceChannel(data: { serverId: string; channelId: string }) {
-    this.socket?.emit('joinVoiceChannel', data);
-  }
+    sendMessage(data: {
+        content: string;
+        channelId: string;
+        channelType: string;
+        serverId?: string;
+    }) {
+        this.socket?.emit("sendMessage", data);
+    }
 
-  leaveVoiceChannel(data: { channelId: string }) {
-    this.socket?.emit('leaveVoiceChannel', data);
-  }
+    joinVoiceChannel(data: { serverId: string; channelId: string }) {
+        this.socket?.emit("joinVoiceChannel", data);
+    }
 
-  startTyping(data: { channelId: string; channelType: string; serverId?: string }) {
-    this.socket?.emit('typing', data);
-  }
+    leaveVoiceChannel(data: { channelId: string }) {
+        this.socket?.emit("leaveVoiceChannel", data);
+    }
 
-  stopTyping(data: { channelId: string; channelType: string; serverId?: string }) {
-    this.socket?.emit('stopTyping', data);
-  }
+    startTyping(data: {
+        channelId: string;
+        channelType: string;
+        serverId?: string;
+    }) {
+        this.socket?.emit("typing", data);
+    }
 
-  onNewMessage(callback: (message: Message) => void) {
-    this.socket?.on('newMessage', callback);
-  }
+    stopTyping(data: {
+        channelId: string;
+        channelType: string;
+        serverId?: string;
+    }) {
+        this.socket?.emit("stopTyping", data);
+    }
 
-  onUserStatusUpdate(callback: (data: { userId: string; status: string }) => void) {
-    this.socket?.on('userStatusUpdate', callback);
-  }
+    onUserStatusUpdate(
+        callback: (data: { userId: string; status: string }) => void,
+    ) {
+        this.socket?.on("userStatusUpdate", callback);
+    }
 
-  onUserTyping(callback: (data: { userId: string; username: string; channelId: string }) => void) {
-    this.socket?.on('userTyping', callback);
-  }
+    onError(callback: (error: { message: string }) => void) {
+        this.socket?.on("error", callback);
+    }
 
-  onUserStoppedTyping(callback: (data: { userId: string; channelId: string }) => void) {
-    this.socket?.on('userStoppedTyping', callback);
-  }
+    off(event: string) {
+        const listener = this.listeners.get(event);
+        if (listener) {
+            this.socket?.off(event, listener);
+            this.listeners.delete(event);
+        }
+    }
 
-  onError(callback: (error: { message: string }) => void) {
-    this.socket?.on('error', callback);
-  }
+    onNewMessage(callback: (message: Message) => void) {
+        const listener = (data: unknown) => callback(data as Message);
+        this.listeners.set("newMessage", listener);
+        this.socket?.on("newMessage", listener);
+    }
 
-  off(event: string, callback?: (...args: unknown[]) => void) {
-    this.socket?.off(event, callback);
-  }
+    onUserTyping(
+        callback: (data: {
+            userId: string;
+            username: string;
+            channelId: string;
+        }) => void,
+    ) {
+        const listener = (data: unknown) =>
+            callback(
+                data as { userId: string; username: string; channelId: string },
+            );
+        this.listeners.set("userTyping", listener);
+        this.socket?.on("userTyping", listener);
+    }
+
+    onUserStoppedTyping(
+        callback: (data: { userId: string; channelId: string }) => void,
+    ) {
+        const listener = (data: unknown) =>
+            callback(data as { userId: string; channelId: string });
+        this.listeners.set("userStoppedTyping", listener);
+        this.socket?.on("userStoppedTyping", listener);
+    }
 }
 
 export default new SocketService();
