@@ -1,4 +1,3 @@
-// src/routes/messages.ts
 import express from "express";
 import Message from "../models/Message.js";
 import DirectMessage from "../models/DirectMessage.js";

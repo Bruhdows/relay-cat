@@ -86,6 +86,29 @@ router.get("/:serverId", authenticate, async (req: AuthRequest, res) => {
     }
 });
 
+router.get("/:serverId/invite", authenticate, async (req: AuthRequest, res) => {
+    try {
+        const { serverId } = req.params;
+
+        const server = await Server.findById(serverId);
+        if (!server) {
+            return res.status(404).json({ message: "Server not found" });
+        }
+
+        if (
+            !server.members.some(
+                (member) => member.toString() === req.user!._id.toString(),
+            )
+        ) {
+            return res.status(403).json({ message: "Access denied" });
+        }
+
+        res.json({ inviteLink: server.inviteCode });
+    } catch (error) {
+        res.status(500).json({ message: "Server error" });
+    }
+});
+
 router.post("/join", authenticate, async (req: AuthRequest, res) => {
     try {
         const { inviteCode } = req.body;

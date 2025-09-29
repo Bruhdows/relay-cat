@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { Server, User, DirectMessage } from "../types";
+import { Server, User, DirectMessage, FriendRequest } from "../types";
 import { useAuth } from "../hooks/useAuth";
 
 interface SidebarProps {
     servers: Server[];
     friends: User[];
+    friendRequests: FriendRequest[];
     directMessages: DirectMessage[];
     selectedServer: Server | null;
     selectedChannel: string | null;
@@ -14,11 +15,18 @@ interface SidebarProps {
     onDMSelect: (dm: DirectMessage) => void;
     onCreateServer: () => void;
     onJoinServer: () => void;
+    onGetInviteLink: (serverId: string) => void;
+    onSendFriendRequest: (username: string) => void;
+    onAcceptFriendRequest: (requestId: string) => void;
+    onRejectFriendRequest: (requestId: string) => void;
+    onRemoveFriend: (friendId: string) => void;
+    loadingServers?: boolean;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
     servers,
     friends,
+    friendRequests,
     directMessages,
     selectedServer,
     selectedChannel,
@@ -28,17 +36,23 @@ const Sidebar: React.FC<SidebarProps> = ({
     onDMSelect,
     onCreateServer,
     onJoinServer,
+    onGetInviteLink,
+    onSendFriendRequest,
+    onAcceptFriendRequest,
+    onRejectFriendRequest,
+    onRemoveFriend,
+    loadingServers,
 }) => {
     const [activeTab, setActiveTab] = useState<"servers" | "friends">(
         "servers",
     );
+    const [newFriendUsername, setNewFriendUsername] = useState("");
     const { state, logout } = useAuth();
-
     return (
-        <div className="sidebar">
+        <div className="sidebar kitty">
             <div className="sidebar-header">
                 <div className="user-info">
-                    <div className="user-avatar">
+                    <div className="user-avatar kitty-avatar">
                         {state.user?.username.charAt(0).toUpperCase()}
                     </div>
                     <div className="user-details">
@@ -77,52 +91,70 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 onClick={onCreateServer}
                                 title="Create Server"
                             >
-                                +
+                                Create
                             </button>
                             <button onClick={onJoinServer} title="Join Server">
-                                📥
+                                Join
                             </button>
                         </div>
                     </div>
 
+                    {loadingServers && (
+                        <div className="loading">Loading servers...</div>
+                    )}
+
                     {servers.map((server) => (
-                        <div
-                            key={server._id}
-                            className={`server-item ${selectedServer?._id === server._id ? "active" : ""}`}
-                            onClick={() => onServerSelect(server)}
-                        >
-                            <div className="server-icon">
-                                {server.name.charAt(0).toUpperCase()}
+                        <div key={server._id}>
+                            <div
+                                className={`server-item ${selectedServer?._id === server._id ? "active" : ""}`}
+                                onClick={() => onServerSelect(server)}
+                            >
+                                <div className="server-icon">
+                                    {server.name.charAt(0).toUpperCase()}
+                                </div>
+                                <span className="server-name">
+                                    {server.name}
+                                </span>
+                                <button
+                                    className="invite-btn"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onGetInviteLink(server._id);
+                                    }}
+                                >
+                                    Invite
+                                </button>
                             </div>
-                            <span className="server-name">{server.name}</span>
+
+                            {selectedServer?._id === server._id && (
+                                <div className="channels-list">
+                                    <div className="section-header">
+                                        Channels
+                                    </div>
+                                    {server.channels
+                                        .sort((a, b) => a.position - b.position)
+                                        .map((channel) => (
+                                            <div
+                                                key={channel._id}
+                                                className={`channel-item ${selectedChannel === channel._id ? "active" : ""}`}
+                                                onClick={() =>
+                                                    onChannelSelect(channel._id)
+                                                }
+                                            >
+                                                <span className="channel-icon">
+                                                    {channel.type === "text"
+                                                        ? "#"
+                                                        : "🔊"}
+                                                </span>
+                                                <span className="channel-name">
+                                                    {channel.name}
+                                                </span>
+                                            </div>
+                                        ))}
+                                </div>
+                            )}
                         </div>
                     ))}
-
-                    {selectedServer && (
-                        <div className="channels-list">
-                            <div className="section-header">Channels</div>
-                            {selectedServer.channels
-                                .sort((a, b) => a.position - b.position)
-                                .map((channel) => (
-                                    <div
-                                        key={channel._id}
-                                        className={`channel-item ${selectedChannel === channel._id ? "active" : ""}`}
-                                        onClick={() =>
-                                            onChannelSelect(channel._id)
-                                        }
-                                    >
-                                        <span className="channel-icon">
-                                            {channel.type === "text"
-                                                ? "#"
-                                                : "🔊"}
-                                        </span>
-                                        <span className="channel-name">
-                                            {channel.name}
-                                        </span>
-                                    </div>
-                                ))}
-                        </div>
-                    )}
                 </div>
             ) : (
                 <div className="friends-list">
@@ -150,9 +182,63 @@ const Sidebar: React.FC<SidebarProps> = ({
                         );
                     })}
 
+                    <div className="section-header">Friend Requests</div>
+                    {friendRequests.length === 0 && (
+                        <div className="loading">No requests</div>
+                    )}
+                    {friendRequests.map((req) => (
+                        <div className="friend-request" key={req._id}>
+                            <div className="friend-avatar">
+                                {req.from.username.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="friend-name">
+                                {req.from.username}
+                            </div>
+                            <div className="friend-request-actions">
+                                <button
+                                    onClick={() =>
+                                        onAcceptFriendRequest(req._id)
+                                    }
+                                >
+                                    ✅
+                                </button>
+                                <button
+                                    onClick={() =>
+                                        onRejectFriendRequest(req._id)
+                                    }
+                                >
+                                    ❌
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+
+                    <div className="section-header">Add Friend</div>
+                    <div className="add-friend">
+                        <input
+                            type="text"
+                            value={newFriendUsername}
+                            onChange={(e) =>
+                                setNewFriendUsername(e.target.value)
+                            }
+                            placeholder="username"
+                        />
+                        <button
+                            onClick={() => {
+                                onSendFriendRequest(newFriendUsername);
+                                setNewFriendUsername("");
+                            }}
+                        >
+                            Send
+                        </button>
+                    </div>
+
                     <div className="section-header">All Friends</div>
+                    {friends.length === 0 && (
+                        <div className="loading">No friends yet</div>
+                    )}
                     {friends.map((friend) => (
-                        <div key={friend.id} className="friend-item">
+                        <div key={friend.id} className="friend-item friend-row">
                             <div className="friend-avatar">
                                 {friend.username.charAt(0).toUpperCase()}
                             </div>
@@ -162,6 +248,13 @@ const Sidebar: React.FC<SidebarProps> = ({
                             <div
                                 className={`friend-status ${friend.status}`}
                             ></div>
+                            <div className="friend-actions">
+                                <button
+                                    onClick={() => onRemoveFriend(friend.id)}
+                                >
+                                    Remove
+                                </button>
+                            </div>
                         </div>
                     ))}
                 </div>

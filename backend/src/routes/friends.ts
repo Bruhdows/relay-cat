@@ -1,4 +1,3 @@
-// src/routes/friends.ts (updated)
 import express from "express";
 import User from "../models/User.js";
 import { authenticate } from "../middleware/auth.js";
