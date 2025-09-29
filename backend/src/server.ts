@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import authRoutes from './routes/auth.js';
 import friendRoutes from './routes/friends.js';
+import serverRoutes from './routes/servers.js';
+import messageRoutes from './routes/messages.js';
 
 dotenv.config();
 
@@ -19,6 +21,8 @@ mongoose.connect(process.env.MONGODB_URI!)
 
 app.use('/api/auth', authRoutes);
 app.use('/api/friends', friendRoutes);
+app.use('/api/servers', serverRoutes);
+app.use('/api/messages', messageRoutes);
 
 app.get('/', (req, res) => {
   res.send('relay-cat backend is purring!');
