@@ -192,4 +192,36 @@ router.post("/dm/:friendId", authenticate, async (req: AuthRequest, res) => {
     }
 });
 
+router.post("/dm/create/:friendId", authenticate, async (req: AuthRequest, res) => {
+    try {
+        const { friendId } = req.params;
+
+        const friend = await User.findById(friendId);
+        if (
+            !friend ||
+            !req.user!.friends.includes(new Types.ObjectId(friendId))
+        ) {
+            return res
+                .status(403)
+                .json({ message: "Can only create DM with friends" });
+        }
+
+        let dm = await DirectMessage.findOne({
+            participants: { $all: [req.user!._id, friendId], $size: 2 },
+        }).populate("participants", "username avatar status");
+
+        if (!dm) {
+            dm = new DirectMessage({
+                participants: [req.user!._id, friendId],
+            });
+            await dm.save();
+            await dm.populate("participants", "username avatar status");
+        }
+
+        res.status(200).json(dm);
+    } catch (error) {
+        res.status(500).json({ message: "Server error" });
+    }
+});
+
 export default router;

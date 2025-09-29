@@ -19,6 +19,7 @@ const AppContent: React.FC = () => {
     const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
     const [selectedDM, setSelectedDM] = useState<DirectMessage | null>(null);
     const [loadingServers, setLoadingServers] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
     useEffect(() => {
         if (state.user && state.token) {
@@ -109,6 +110,25 @@ const AppContent: React.FC = () => {
         setSelectedChannel(null);
     };
 
+    const handleCreateOrOpenDM = async (friendId: string) => {
+        try {
+            const existingDM = directMessages.find((dm) => {
+                return dm.participants.some((p) => p._id === friendId);
+            });
+
+            if (existingDM) {
+                handleDMSelect(existingDM);
+            } else {
+                const newDM = await api.createDirectMessage(friendId);
+                setDirectMessages((prev) => [...prev, newDM]);
+                handleDMSelect(newDM);
+            }
+        } catch (error) {
+            console.error("Error creating/opening DM:", error);
+            alert("Failed to open direct message");
+        }
+    };
+
     const handleSendFriendRequest = async (username: string) => {
         if (!username.trim()) return;
         try {
@@ -168,6 +188,7 @@ const AppContent: React.FC = () => {
                 onServerSelect={handleServerSelect}
                 onChannelSelect={handleChannelSelect}
                 onDMSelect={handleDMSelect}
+                onCreateOrOpenDM={handleCreateOrOpenDM}
                 onCreateServer={handleCreateServer}
                 onJoinServer={handleJoinServer}
                 onGetInviteLink={handleGetInviteLink}
@@ -176,6 +197,8 @@ const AppContent: React.FC = () => {
                 onRejectFriendRequest={handleRejectFriendRequest}
                 onRemoveFriend={handleRemoveFriend}
                 loadingServers={loadingServers}
+                isCollapsed={sidebarCollapsed}
+                onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
             />
             <Chat
                 selectedServer={selectedServer}

@@ -13,6 +13,7 @@ interface SidebarProps {
     onServerSelect: (server: Server) => void;
     onChannelSelect: (channelId: string) => void;
     onDMSelect: (dm: DirectMessage) => void;
+    onCreateOrOpenDM: (userId: string) => void;
     onCreateServer: () => void;
     onJoinServer: () => void;
     onGetInviteLink: (serverId: string) => void;
@@ -21,6 +22,8 @@ interface SidebarProps {
     onRejectFriendRequest: (requestId: string) => void;
     onRemoveFriend: (friendId: string) => void;
     loadingServers?: boolean;
+    isCollapsed: boolean;
+    onToggleCollapse: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -34,6 +37,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     onServerSelect,
     onChannelSelect,
     onDMSelect,
+    onCreateOrOpenDM,
     onCreateServer,
     onJoinServer,
     onGetInviteLink,
@@ -42,14 +46,68 @@ const Sidebar: React.FC<SidebarProps> = ({
     onRejectFriendRequest,
     onRemoveFriend,
     loadingServers,
+    isCollapsed,
+    onToggleCollapse,
 }) => {
     const [activeTab, setActiveTab] = useState<"servers" | "friends">(
         "servers",
     );
     const [newFriendUsername, setNewFriendUsername] = useState("");
     const { state, logout } = useAuth();
+
+    if (isCollapsed) {
+        return (
+            <div className="sidebar kitty collapsed">
+                <button className="sidebar-toggle" onClick={onToggleCollapse} title="Expand sidebar">
+                    →
+                </button>
+                <div className="sidebar-collapsed-content">
+                    <div className="user-avatar kitty-avatar collapsed-avatar">
+                        {state.user?.username.charAt(0).toUpperCase()}
+                    </div>
+                    {activeTab === "servers" ? (
+                        <div className="collapsed-icons">
+                            {servers.map((server) => (
+                                <div
+                                    key={server._id}
+                                    className={`collapsed-server-icon ${selectedServer?._id === server._id ? "active" : ""}`}
+                                    onClick={() => onServerSelect(server)}
+                                    title={server.name}
+                                >
+                                    {server.name.charAt(0).toUpperCase()}
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="collapsed-icons">
+                            {directMessages.map((dm) => {
+                                const friend = dm.participants.find(
+                                    (p) => p._id !== state.user?._id,
+                                );
+                                return (
+                                    <div
+                                        key={dm._id}
+                                        className={`collapsed-server-icon ${selectedDM?._id === dm._id ? "active" : ""}`}
+                                        onClick={() => onDMSelect(dm)}
+                                        title={friend?.username}
+                                    >
+                                        {friend?.username.charAt(0).toUpperCase()}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="sidebar kitty">
+            <button className="sidebar-toggle" onClick={onToggleCollapse} title="Collapse sidebar">
+                ←
+            </button>
+
             <div className="sidebar-header">
                 <div className="user-info">
                     <div className="user-avatar kitty-avatar">
@@ -161,7 +219,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <div className="section-header">Direct Messages</div>
                     {directMessages.map((dm) => {
                         const friend = dm.participants.find(
-                            (p) => p.id !== state.user?.id,
+                            (p) => p._id !== state.user?._id,
                         );
                         return (
                             <div
@@ -238,7 +296,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <div className="loading">No friends yet</div>
                     )}
                     {friends.map((friend) => (
-                        <div key={friend.id} className="friend-item friend-row">
+                        <div
+                            key={friend._id}
+                            className="friend-item friend-row"
+                            onClick={() => {
+                                onCreateOrOpenDM(friend._id);
+                            }}
+                            style={{ cursor: "pointer" }}
+                        >
                             <div className="friend-avatar">
                                 {friend.username.charAt(0).toUpperCase()}
                             </div>
@@ -250,7 +315,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                             ></div>
                             <div className="friend-actions">
                                 <button
-                                    onClick={() => onRemoveFriend(friend.id)}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onRemoveFriend(friend._id);
+                                    }}
                                 >
                                     Remove
                                 </button>

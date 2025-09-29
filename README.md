@@ -4,7 +4,7 @@ imagine discord, but designed in a sunbeam during a nap. simple voice and text f
 something actually to read here will be added soon :3 
 ## Todo
 - [ ] Move to Tailwind CSS
-- [ ] Make Direct Messaging work
+- [x] Make Direct Messaging work
 - [ ] Voice calls/channels
 - [ ] UI Improvements
 - [ ] Server channel/role/permissions managment

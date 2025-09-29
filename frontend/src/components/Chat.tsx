@@ -66,7 +66,15 @@ const Chat: React.FC<ChatProps> = ({
                     message.channelType === "dm");
 
             if (isRelevantMessage) {
-                setMessages((prev) => [...prev, message]);
+                setMessages((prev) => {
+                    const messageExists = prev.some(
+                        (m) => m._id === message._id,
+                    );
+                    if (messageExists) {
+                        return prev;
+                    }
+                    return [...prev, message];
+                });
             }
         };
 
@@ -76,7 +84,7 @@ const Chat: React.FC<ChatProps> = ({
             channelId: string;
         }) => {
             if (
-                data.userId !== state.user?.id &&
+                data.userId !== state.user?._id &&
                 data.channelId === (selectedChannel || selectedDM?._id)
             ) {
                 setTypingUsers((prev) => [
@@ -107,7 +115,7 @@ const Chat: React.FC<ChatProps> = ({
             socketService.off("userTyping");
             socketService.off("userStoppedTyping");
         };
-    }, [selectedServer, selectedChannel, selectedDM, state.user?.id]);
+    }, [selectedServer, selectedChannel, selectedDM, state.user?._id]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -163,7 +171,7 @@ const Chat: React.FC<ChatProps> = ({
 
     const chatTitle = selectedServer
         ? `# ${selectedServer.channels.find((c) => c._id === selectedChannel)?.name || "Unknown"}`
-        : selectedDM?.participants.find((p) => p.id !== state.user?.id)
+        : selectedDM?.participants.find((p) => p._id !== state.user?._id)
               ?.username || "Direct Message";
 
     return (

@@ -148,3 +148,8 @@ export const getInviteLink = async (
     const response = await api.get(`/servers/${serverId}/invite`);
     return response.data;
 };
+
+export const createDirectMessage = async (friendId: string): Promise<DirectMessage> => {
+    const response = await api.post(`/messages/dm/create/${friendId}`);
+    return response.data;
+};
