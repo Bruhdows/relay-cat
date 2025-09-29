@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { IDirectMessage } from '../types/index.js';
 
 const directMessageSchema = new mongoose.Schema({
   participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }],
@@ -8,4 +9,4 @@ const directMessageSchema = new mongoose.Schema({
 
 directMessageSchema.index({ participants: 1 });
 
-export default mongoose.model('DirectMessage', directMessageSchema);
+export default mongoose.model<IDirectMessage>('DirectMessage', directMessageSchema);

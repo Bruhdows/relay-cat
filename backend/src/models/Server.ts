@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { IServer } from '../types/index.js';
 
 const channelSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -15,4 +16,4 @@ const serverSchema = new mongoose.Schema({
   icon: { type: String, default: '' }
 }, { timestamps: true });
 
-export default mongoose.model('Server', serverSchema);
+export default mongoose.model<IServer>('Server', serverSchema);

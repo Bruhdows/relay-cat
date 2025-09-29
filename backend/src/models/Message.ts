@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { IMessage } from '../types/index.js';
 
 const messageSchema = new mongoose.Schema({
   content: { type: String, required: true, maxlength: 2000 },
@@ -10,4 +11,4 @@ const messageSchema = new mongoose.Schema({
   editedAt: { type: Date }
 }, { timestamps: true });
 
-export default mongoose.model('Message', messageSchema);
+export default mongoose.model<IMessage>('Message', messageSchema);
